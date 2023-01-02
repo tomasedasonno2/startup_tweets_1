@@ -93,48 +93,33 @@ def generate_word_match_score(text, words_dict):
         if text.lower().find(word)>-1: score +=words_dict[word]
     return score
 
-def generate_features_and_prune(df):
+def generate_features(df):
     df['Word Match Score']=df['Tweet'].map(lambda x: generate_word_match_score(x, word_match_bag))
-    
-    df=df[(df['Word Match Score']>0.01)].reset_index(drop=True)
     
     tweet_topic_scores = df['Tweet'].map(generate_topic_scores)
     df['Tweet Weighted Topic Score']=(tweet_topic_scores.map(lambda x: x[0])*3+tweet_topic_scores.map(lambda x: x[1])+tweet_topic_scores.map(lambda x: x[2]))/5
-
-    df=df[(df['Tweet Weighted Topic Score']>0.25)].reset_index(drop=True)
     
     bio_topic_scores = df['User Bio'].map(generate_topic_scores)
     df['Bio Weighted Topic Score']=(bio_topic_scores.map(lambda x: x[0])*2+bio_topic_scores.map(lambda x: x[1])+bio_topic_scores.map(lambda x: x[2]))/4
-    df=df[(df['Bio Weighted Topic Score']>0.10)].reset_index(drop=True)
     
     tweet_sentiment_scores = df['Tweet'].map(generate_sentiment_score)
     df['Tweet Sentiment Score']=tweet_sentiment_scores.map(lambda x: (x[0]*3+x[1])/4)
-    df=df[(df['Tweet Sentiment Score']>0.25)].reset_index(drop=True)
     
-    print('25% done with generating columns.')
     bio_sentiment_scores = df['User Bio'].map(generate_sentiment_score)
     df['Bio Sentiment Score']=bio_sentiment_scores.map(lambda x: (x[0]*3+x[1])/4)
     
     df['Self-Link Similarity']=[Levenshtein.ratio(df['Link'][i],df['Username'][i])for i in range(len(df['Link']))] 
         
     df['ZS "Startup"']=[generate_zeroshot_classification(x, 'startup') for x in df['Tweet']]
-    df=df[(df['ZS "Startup"']>0.10)].reset_index(drop=True)
-    
-    print('50% done with generating columns.')
     
     df['ZS "Announcement"']=[generate_zeroshot_classification(x, 'announcement') for x in df['Tweet']]
-    df=df[(df['ZS "Announcement"']>0.10)].reset_index(drop=True)
     
     df['ZS "Innovation"']=[generate_zeroshot_classification(x, 'announcement') for x in df['Tweet']]
-    df=df[(df['ZS "Innovation"']>0.10)].reset_index(drop=True)
-    
-    print('75% done with generating columns.')
     
     df = generate_zeroshot_weighted_score(df)
     
     df['Bio ZS "Startup"']=[generate_zeroshot_classification(x, 'startup') for x in df['User Bio']]
     
-    print('90% done with generating columns.')
     df['Bio ZS "Startup Founder"']=[generate_zeroshot_classification(x, 'startup founder') for x in df['User Bio']]
     
     return df
@@ -149,4 +134,25 @@ def train_gaussian_model(df, model):
                   'ZS Weighted Score', 'Bio ZS "Startup"', 'Bio ZS "Startup Founder"', 
                   'Word Match Score', 'Self-Link Similarity']].values, df['Output'])
 
+train = generate_features(train)
 
+lin = LinearRegression()
+rf = RandomForestClassifier()
+kernel = 1.0 * RBF(1.0)
+gpc = GaussianProcessClassifier(kernel=kernel, random_state=0)
+
+train_model(train, lin)
+train_model(train, rf)
+train_gaussian_model(train, gpc)
+
+file_lin = open('lin', 'wb')
+pickle.dump(lin, file_lin)
+file_lin.close()
+
+file_rf = open('rf', 'wb')
+pickle.dump(rf, file_rf)
+file_rf.close()
+
+file_gpc = open('gpc', 'wb')
+pickle.dump(gpc, file_gpc)
+file_gpc.close()

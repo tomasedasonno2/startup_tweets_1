@@ -1,6 +1,15 @@
-import pickle
+import snscrape.modules.twitter as sntwitter
+import pandas as pd
+import numpy as np
+from transformers import AutoModelForSequenceClassification, TFAutoModelForSequenceClassification
 from transformers import AutoTokenizer, AutoConfig
+from transformers import pipeline
+from scipy.special import expit, softmax
+import pickle
 import Levenshtein
+
+from datetime import date
+from datetime import timedelta
 
 model_topic_pickle = open ("model_topic", "rb")
 model_topic = pickle.load(model_topic_pickle)
@@ -9,9 +18,9 @@ model_sentiment = pickle.load(model_sentiment_pickle)
 zeroshot_classifier_pickle = open ('model_zs', 'rb')
 zeroshot_classifier = pickle.load(zeroshot_classifier_pickle)
 
-MODEL_topic = f"cardiffnlp/tweet-topic-21-multi"
+MODEL_topic = "cardiffnlp/tweet-topic-21-multi"
 tokenizer_topic = AutoTokenizer.from_pretrained(MODEL_topic)
-MODEL_sentiment = f"cardiffnlp/twitter-roberta-base-sentiment-latest"
+MODEL_sentiment = "cardiffnlp/twitter-roberta-base-sentiment-latest"
 tokenizer_sentiment = AutoTokenizer.from_pretrained(MODEL_sentiment)
 config_sentiment = AutoConfig.from_pretrained(MODEL_sentiment)
 tokenizer_zs = AutoTokenizer.from_pretrained("typeform/distilbert-base-uncased-mnli")
@@ -155,3 +164,60 @@ def grab_tweets_2(days_since=2, number = 10000):
                             tweet.mentionedUsers, twitter_link_string_processor(str(tweet.user.link))])
 
     return pd.DataFrame(tweets_list, columns=['URL', 'Tweet', 'Username', 'User Bio', 'Followers', 'Tags', 'Link']).fillna('')
+
+def grab_tweets_3(days_since=2, number = 10000):
+    query = """
+            ("my startup" OR "my new startup" OR "our startup" OR "our new startup")
+            
+            
+            since:{} until:{}
+            """.format(date.today() - timedelta(days = days_since+1), date.today() - timedelta(days = days_since))
+
+    tweets_list = []
+    for i,tweet in enumerate(sntwitter.TwitterSearchScraper(query).get_items()):  
+        if i>number:
+            break
+        tweets_list.append([tweet.url, tweet.rawContent, tweet.user.username, tweet.user.rawDescription, tweet.user.followersCount,
+                            tweet.mentionedUsers, twitter_link_string_processor(str(tweet.user.link))])
+
+    return pd.DataFrame(tweets_list, columns=['URL', 'Tweet', 'Username', 'User Bio', 'Followers', 'Tags', 'Link']).fillna('')
+
+def run_linear_model(df, model, cutoff = 0.3):
+    predictions = model.predict(df[['Tweet Weighted Topic Score', 'Bio Weighted Topic Score', 'Tweet Sentiment Score', 'Bio Sentiment Score',
+                  'ZS Weighted Score', 'Bio ZS "Startup"', 'Bio ZS "Startup Founder"', 
+                  'Word Match Score', 'Self-Link Similarity']].values)
+    df['Linear Prediction'] = predictions
+    return df[df['Linear Prediction']>cutoff][['URL', 'Tweet']].reset_index(drop=True)
+
+def run_model(df, model):
+    predictions = model.predict(df[['Tweet Weighted Topic Score', 'Bio Weighted Topic Score', 'Tweet Sentiment Score', 'Bio Sentiment Score',
+                  'ZS Weighted Score', 'Bio ZS "Startup"', 'Bio ZS "Startup Founder"', 
+                  'Word Match Score', 'Self-Link Similarity']].values)
+    return df[[bool(x) for x in predictions]][['URL', 'Tweet']].reset_index(drop=True)
+
+def run_gaussian_model(df, model, cutoff = 0.3):
+    probas = model.predict_proba(df[['Tweet Weighted Topic Score', 'Bio Weighted Topic Score', 'Tweet Sentiment Score', 'Bio Sentiment Score',
+                      'ZS Weighted Score', 'Bio ZS "Startup"', 'Bio ZS "Startup Founder"', 
+                      'Word Match Score', 'Self-Link Similarity']].values)[:,-1] ##last column
+    return df[[x > cutoff for x in probas]][['URL', 'Tweet']]
+
+test = grab_tweets(2)
+
+test = generate_features_and_prune(test)
+
+lin = pickle.load(open ("lin", "rb"))
+rf = pickle.load(open ("rf", "rb"))
+gpc = pickle.load(open ("gpc", "rb"))
+
+output = run_linear_model(test, lin, cutoff = 0.30)
+
+output_2 = grab_tweets_2()[['URL', 'Tweet']]
+test_3 = grab_tweets_3()
+test_3['Word Match Score']=test_3['Tweet'].map(lambda x: generate_word_match_score(x, word_match_bag_sans_startup))
+output_3 = test_3[test_3['Word Match Score']>0][['URL', 'Tweet']]
+
+with open('output.txt', 'w') as f:
+    for url in pd.concat([output, output_2, output_3])['URL']:
+
+        f.write(url)
+        f.write('\n')

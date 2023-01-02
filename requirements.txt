@@ -1,0 +1,9 @@
+Levenshtein==0.20.9
+matplotlib==3.5.2
+numpy==1.21.5
+pandas==1.4.4
+scipy==1.7.3
+session_info==1.0.0
+scikit-learn==1.2.0
+snscrape
+transformers==4.17.0
