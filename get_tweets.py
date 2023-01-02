@@ -123,6 +123,8 @@ def generate_features_and_prune(df):
     print('90% done with generating columns.')
     df['Bio ZS "Startup Founder"']=[generate_zeroshot_classification(x, 'startup founder') for x in df['User Bio']]
     
+    
+    print('100% done with generating columns.')
     return df
 
 
@@ -209,7 +211,7 @@ lin = pickle.load(open ("lin", "rb"))
 rf = pickle.load(open ("rf", "rb"))
 gpc = pickle.load(open ("gpc", "rb"))
 
-output = run_linear_model(test, lin, cutoff = 0.30)
+output = run_linear_model(test, lin, cutoff = 0.50)
 
 output_2 = grab_tweets_2()[['URL', 'Tweet']]
 test_3 = grab_tweets_3()
