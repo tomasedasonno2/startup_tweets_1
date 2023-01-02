@@ -6,6 +6,7 @@ Download these three files from Google Drive, into the project directory:
 - https://drive.google.com/file/d/1SJm55q0I6rP87dzcghz63tEz_-JR3g1g/view?usp=sharing
 - https://drive.google.com/file/d/1DvPVU7_Nkbfx9r57Sa9En_TeehPNx_0O/view?usp=sharing
 - https://drive.google.com/file/d/1dyAtaLcsfYq9yOO-9M3zsXvN7Pn0N5nz/view?usp=sharing
+
 They can be quite large as they are pretrained transformers for NLP (working on reducing the size)
 
 # What this is 
