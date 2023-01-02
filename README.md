@@ -9,7 +9,7 @@ Download these three files from Google Drive, into the project directory:
 
 They can be quite large as they are pretrained transformers (currently working on reducing the size)
 
-# What this is 
+# What this is:
 This uses a few ML models along with some naive human-made NLP features to attempt to scrape a day's tweets for newly announced startups. It's built with snscrape and generates a .txt file with ≤100 URLs and tweets from 24 to 48 hours ago. 
 
 # To use: 
