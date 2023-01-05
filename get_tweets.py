@@ -203,6 +203,9 @@ def run_gaussian_model(df, model, cutoff = 0.3):
                       'Word Match Score', 'Self-Link Similarity']].values)[:,-1] ##last column
     return df[[x > cutoff for x in probas]][['URL', 'Tweet']]
 
+CUTOFF_1 = 0.3
+CUTOFF_3 = 1
+
 test = grab_tweets(2)
 
 test = generate_features_and_prune(test)
@@ -211,15 +214,25 @@ lin = pickle.load(open ("lin", "rb"))
 rf = pickle.load(open ("rf", "rb"))
 gpc = pickle.load(open ("gpc", "rb"))
 
-output = run_linear_model(test, lin, cutoff = 0.50)
+output = run_linear_model(test, lin, cutoff = CUTOFF_1)
 
 output_2 = grab_tweets_2()[['URL', 'Tweet']]
 test_3 = grab_tweets_3()
 test_3['Word Match Score']=test_3['Tweet'].map(lambda x: generate_word_match_score(x, word_match_bag_sans_startup))
-output_3 = test_3[test_3['Word Match Score']>0][['URL', 'Tweet']]
+output_3 = test_3[test_3['Word Match Score']>CUTOFF_3][['URL', 'Tweet']]
 
 with open('output.txt', 'w') as f:
-    for url in pd.concat([output, output_2, output_3])['URL']:
+    f.write('Query 1 outputs')
+    for url in output['URL']:
+        f.write(url)
+        f.write('\n')
 
+    f.write('Query 2 outputs')
+    for url in output_2['URL']:
+        f.write(url)
+        f.write('\n')
+
+    f.write('Query 3 outputs')
+    for url in output_3['URL']:
         f.write(url)
         f.write('\n')
