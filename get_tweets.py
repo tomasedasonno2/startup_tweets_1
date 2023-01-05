@@ -203,8 +203,8 @@ def run_gaussian_model(df, model, cutoff = 0.3):
                       'Word Match Score', 'Self-Link Similarity']].values)[:,-1] ##last column
     return df[[x > cutoff for x in probas]][['URL', 'Tweet']]
 
-CUTOFF_1 = 0.3
-CUTOFF_3 = 1
+CUTOFF_1 = 0.4
+CUTOFF_3 = 1.5
 
 test = grab_tweets(2)
 
