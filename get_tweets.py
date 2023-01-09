@@ -221,18 +221,22 @@ test_3 = grab_tweets_3()
 test_3['Word Match Score']=test_3['Tweet'].map(lambda x: generate_word_match_score(x, word_match_bag_sans_startup))
 output_3 = test_3[test_3['Word Match Score']>CUTOFF_3][['URL', 'Tweet']]
 
-with open('output.txt', 'w') as f:
-    f.write('Query 1 outputs')
-    for url in output['URL']:
-        f.write(url)
-        f.write('\n')
+output.to_csv('{} search 1.csv'.format(date.today()))
+output_2.to_csv('{} search 2.csv'.format(date.today()))
+output_3.to_csv('{} search 3.csv'.format(date.today()))
 
-    f.write('Query 2 outputs')
-    for url in output_2['URL']:
-        f.write(url)
-        f.write('\n')
+# with open('output.txt', 'w') as f:
+#     f.write('Query 1 outputs \n')
+#     for url in output['URL']:
+#         f.write(url)
+#         f.write('\n')
 
-    f.write('Query 3 outputs')
-    for url in output_3['URL']:
-        f.write(url)
-        f.write('\n')
+#     f.write('\n Query 2 outputs \n')
+#     for url in output_2['URL']:
+#         f.write(url)
+#         f.write('\n')
+
+#     f.write('\n Query 3 outputs \n')
+#     for url in output_3['URL']:
+#         f.write(url)
+#         f.write('\n')
